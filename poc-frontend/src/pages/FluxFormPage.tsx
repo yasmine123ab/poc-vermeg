@@ -55,6 +55,15 @@ const FluxFormPage: React.FC = () => {
         if (flux.config) {
           try { setConnectorConfig(JSON.parse(flux.config)); } catch {}
         }
+        if (flux.transformRules && flux.transformRules.length > 0) {
+          setRules(flux.transformRules.map(r => ({
+            orderIndex: r.orderIndex,
+            ruleType: r.ruleType,
+            sourceField: r.sourceField,
+            targetField: r.targetField,
+            params: r.params,
+          })));
+        }
       })
       .catch(() => toast.error('Erreur lors du chargement du flux'))
       .finally(() => setLoading(false));

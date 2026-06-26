@@ -13,6 +13,20 @@ export interface Flux {
   connectorType: ConnectorType;
   outputFormat: OutputFormat;
   config?: string;
+  connectorConfig?: {
+    type: ConnectorType;
+    host?: string;
+    port?: number;
+    credential?: string;
+    extra?: string;
+  };
+  transformRules?: {
+    orderIndex: number;
+    ruleType: RuleType;
+    sourceField: string;
+    targetField: string;
+    params?: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }

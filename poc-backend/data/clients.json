@@ -1,0 +1,10 @@
+[
+  {"id": 1, "nom": "Société Alpha", "secteur": "Technologie", "chiffre_affaires": 2500000, "pays": "Tunisie", "contact": "alpha@example.com"},
+  {"id": 2, "nom": "Beta Consulting", "secteur": "Finance", "chiffre_affaires": 1800000, "pays": "Maroc", "contact": "beta@example.com"},
+  {"id": 3, "nom": "Gamma Industries", "secteur": "Industrie", "chiffre_affaires": 5200000, "pays": "Algérie", "contact": "gamma@example.com"},
+  {"id": 4, "nom": "Delta Services", "secteur": "Services", "chiffre_affaires": 900000, "pays": "Tunisie", "contact": "delta@example.com"},
+  {"id": 5, "nom": "Epsilon Tech", "secteur": "Technologie", "chiffre_affaires": 3100000, "pays": "France", "contact": "epsilon@example.com"},
+  {"id": 6, "nom": "Zeta Corp", "secteur": "Commerce", "chiffre_affaires": 7800000, "pays": "Tunisie", "contact": "zeta@example.com"},
+  {"id": 7, "nom": "Eta Solutions", "secteur": "Conseil", "chiffre_affaires": 1200000, "pays": "Sénégal", "contact": "eta@example.com"},
+  {"id": 8, "nom": "Theta Digital", "secteur": "Technologie", "chiffre_affaires": 4500000, "pays": "Tunisie", "contact": "theta@example.com"}
+]

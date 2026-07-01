@@ -26,6 +26,9 @@ public class DatabaseConnector implements DataConnector {
         try {
             Map<String, Object> configMap = objectMapper.readValue(config, new TypeReference<>() {});
             String query = (String) configMap.get("query");
+            if (query == null || query.isBlank()) {
+                throw new IllegalArgumentException("Config must contain a non-blank 'query' field");
+            }
             log.info("Executing SQL query: {}", query);
             return jdbcTemplate.queryForList(query);
         } catch (Exception e) {

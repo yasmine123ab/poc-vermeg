@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+
+  poc-db:
+    image: postgres:15-alpine
+    container_name: poc-db
+    environment:
+      POSTGRES_DB: poc_vermeg
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - poc-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  poc-backend:
+    build: ./poc-backend
+    container_name: poc-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://poc-db:5432/poc_vermeg
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      APP_OUTPUT_DIR: /app/outputs
+    ports:
+      - "8080:8080"
+    depends_on:
+      poc-db:
+        condition: service_healthy
+    volumes:
+      - outputs_data:/app/outputs
+    networks:
+      - poc-network
+
+  poc-frontend:
+    build: ./poc-frontend
+    container_name: poc-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - poc-backend
+    networks:
+      - poc-network
+
+volumes:
+  postgres_data:
+  outputs_data:
+
+networks:
+  poc-network:
+    driver: bridge

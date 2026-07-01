@@ -110,7 +110,13 @@ public class FluxService {
     }
 
     public FluxResponseDTO deactivateFlux(Long id) {
-        return changeStatus(id, FluxStatus.INACTIVE);
+        Flux flux = fluxRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Flux", id));
+        if (FluxStatus.RUNNING.equals(flux.getStatus())) {
+            throw new ValidationException("Cannot deactivate a flux that is currently RUNNING");
+        }
+        flux.setStatus(FluxStatus.INACTIVE);
+        return fluxMapper.toResponse(fluxRepository.save(flux));
     }
 
     public FluxResponseDTO archiveFlux(Long id) {

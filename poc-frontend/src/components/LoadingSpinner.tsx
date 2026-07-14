@@ -1,26 +1,10 @@
 import React from 'react';
+import { Box, CircularProgress } from '@mui/material';
 
 const LoadingSpinner: React.FC = () => (
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: '60px',
-    }}
-  >
-    <div
-      style={{
-        width: '40px',
-        height: '40px',
-        border: '4px solid #e2e8f0',
-        borderTop: '4px solid #2E75B6',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }}
-    />
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-  </div>
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px' }}>
+    <CircularProgress sx={{ color: '#2E75B6' }} />
+  </Box>
 );
 
 export default LoadingSpinner;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Chip } from '@mui/material';
 import { FluxStatus, ExecutionStatus } from '../types';
 
 type Status = FluxStatus | ExecutionStatus;
@@ -21,20 +22,11 @@ interface Props {
 const StatusBadge: React.FC<Props> = ({ status }) => {
   const style = colorMap[status] || { bg: '#e2e3e5', color: '#383d41' };
   return (
-    <span
-      style={{
-        backgroundColor: style.bg,
-        color: style.color,
-        padding: '3px 10px',
-        borderRadius: '12px',
-        fontSize: '12px',
-        fontWeight: 600,
-        display: 'inline-block',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {status}
-    </span>
+    <Chip
+      label={status}
+      size="small"
+      sx={{ bgcolor: style.bg, color: style.color, fontWeight: 700, fontSize: '11px' }}
+    />
   );
 };
 

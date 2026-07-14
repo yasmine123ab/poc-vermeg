@@ -1,3 +1,20 @@
+export type UserRole = 'ADMIN' | 'OPERATOR';
+
+export interface AuthUser {
+  username: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface AuthResponse {
+  token: string;
+  type: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  expiresIn: number;
+}
+
 export type FluxStatus = 'INACTIVE' | 'ACTIVE' | 'RUNNING' | 'ARCHIVED';
 export type ConnectorType = 'DATABASE' | 'REST_API' | 'FILE' | 'MESSAGE_QUEUE';
 export type OutputFormat = 'JSON' | 'XML';

@@ -1,34 +1,51 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
+import {
+  Box, Toolbar, Typography, Button, IconButton, Tooltip, Dialog, DialogTitle,
+  DialogContent, DialogContentText, DialogActions, Snackbar, Alert, Link, Skeleton,
+} from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import AddIcon from '@mui/icons-material/Add';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import EditIcon from '@mui/icons-material/Edit';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { getAllFlux, deleteFlux, activateFlux, deactivateFlux } from '../api/fluxApi';
 import { triggerExecution } from '../api/executionApi';
+import { isAuthError } from '../api/axiosConfig';
 import { Flux } from '../types';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ConfirmModal from '../components/ConfirmModal';
 
-const btn = (color: string, bg: string): React.CSSProperties => ({
-  padding: '5px 12px', borderRadius: '5px', border: 'none',
-  background: bg, color, cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-  marginRight: '6px', transition: 'opacity 0.2s',
-});
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
 
 const FluxListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [fluxList, setFluxList] = useState<Flux[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+  const [rowCount, setRowCount] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Flux | null>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false, message: '', severity: 'success',
+  });
+
+  const notify = (message: string, severity: 'success' | 'error') =>
+    setSnackbar({ open: true, message, severity });
 
   const load = useCallback(() => {
     setLoading(true);
-    getAllFlux(page, 10)
-      .then(data => { setFluxList(data.content); setTotalPages(data.totalPages); })
-      .catch(() => toast.error('Erreur lors du chargement des flux'))
+    getAllFlux(paginationModel.page, paginationModel.pageSize)
+      .then(data => { setFluxList(data.content); setRowCount(data.totalElements); })
+      .catch(error => { if (!isAuthError(error)) notify('Erreur lors du chargement des flux', 'error'); })
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [paginationModel]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -36,23 +53,23 @@ const FluxListPage: React.FC = () => {
     try {
       if (flux.status === 'ACTIVE') {
         await deactivateFlux(flux.id);
-        toast.success(`Flux "${flux.name}" désactivé`);
+        notify(`Flux "${flux.name}" désactivé`, 'success');
       } else {
         await activateFlux(flux.id);
-        toast.success(`Flux "${flux.name}" activé`);
+        notify(`Flux "${flux.name}" activé`, 'success');
       }
       load();
     } catch {
-      toast.error('Erreur lors du changement de statut');
+      notify('Erreur lors du changement de statut', 'error');
     }
   };
 
   const handleExecute = async (flux: Flux) => {
     try {
       await triggerExecution(flux.id);
-      toast.success(`Exécution lancée pour "${flux.name}"`);
+      notify(`Exécution lancée pour "${flux.name}"`, 'success');
     } catch {
-      toast.error('Erreur lors du déclenchement de l\'exécution');
+      notify("Erreur lors du déclenchement de l'exécution", 'error');
     }
   };
 
@@ -60,128 +77,135 @@ const FluxListPage: React.FC = () => {
     if (!deleteTarget) return;
     try {
       await deleteFlux(deleteTarget.id);
-      toast.success(`Flux "${deleteTarget.name}" supprimé`);
+      notify(`Flux "${deleteTarget.name}" supprimé`, 'success');
       setDeleteTarget(null);
       load();
     } catch {
-      toast.error('Erreur lors de la suppression');
+      notify('Erreur lors de la suppression', 'error');
     }
   };
 
-  return (
-    <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
-        <h1 style={{ color: '#1F4E79', fontSize: '26px', margin: 0 }}>Gestion des Flux</h1>
-        <button
-          onClick={() => navigate('/flux/new')}
-          style={{
-            padding: '10px 22px', background: '#2E75B6', color: '#fff',
-            border: 'none', borderRadius: '7px', cursor: 'pointer', fontWeight: 600, fontSize: '14px',
-          }}
+  const columns: GridColDef<Flux>[] = [
+    {
+      field: 'name', headerName: 'Nom', flex: 1, minWidth: 160,
+      renderCell: (params: GridRenderCellParams<Flux>) => (
+        <Link
+          component="button"
+          underline="hover"
+          sx={{ fontWeight: 600, color: '#1F4E79' }}
+          onClick={() => navigate(`/flux/${params.row.id}/edit`)}
         >
-          + Nouveau flux
-        </button>
-      </div>
+          {params.value}
+        </Link>
+      ),
+    },
+    { field: 'description', headerName: 'Description', flex: 1.2, minWidth: 180, valueGetter: (value) => value || '-' },
+    { field: 'connectorType', headerName: 'Connecteur', width: 130 },
+    { field: 'outputFormat', headerName: 'Format', width: 100 },
+    {
+      field: 'status', headerName: 'Statut', width: 120,
+      renderCell: (params: GridRenderCellParams<Flux>) => <StatusBadge status={params.row.status} />,
+    },
+    {
+      field: 'actions', headerName: 'Actions', width: 170, sortable: false, filterable: false,
+      renderCell: (params: GridRenderCellParams<Flux>) => {
+        const flux = params.row;
+        return (
+          <Box>
+            {flux.status !== 'INACTIVE' && (
+              <Tooltip title="Exécuter">
+                <IconButton size="small" color="primary" onClick={() => handleExecute(flux)}>
+                  <PlayArrowIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {isAdmin() && (
+              <Tooltip title="Modifier">
+                <IconButton size="small" onClick={() => navigate(`/flux/${flux.id}/edit`)}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title={flux.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}>
+              <IconButton size="small" color={flux.status === 'ACTIVE' ? 'default' : 'success'} onClick={() => handleToggle(flux)}>
+                <PowerSettingsNewIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            {isAdmin() && (
+              <Tooltip title="Supprimer">
+                <IconButton size="small" color="error" onClick={() => setDeleteTarget(flux)}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        );
+      },
+    },
+  ];
 
-      {loading ? <LoadingSpinner /> : (
-        <>
-          <div style={{ background: '#fff', borderRadius: '10px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#1F4E79' }}>
-                  {['Nom', 'Description', 'Connecteur', 'Format', 'Statut', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: '#fff', fontSize: '13px', fontWeight: 600 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {fluxList.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Aucun flux trouvé</td></tr>
-                ) : fluxList.map((flux, i) => (
-                  <tr key={flux.id} style={{ borderBottom: '1px solid #f0f0f0', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1F4E79', fontSize: '14px' }}>{flux.name}</td>
-                    <td style={{ padding: '12px 16px', color: '#666', fontSize: '13px', maxWidth: '200px' }}>
-                      <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {flux.description || '-'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>{flux.connectorType}</td>
-                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>{flux.outputFormat}</td>
-                    <td style={{ padding: '12px 16px' }}><StatusBadge status={flux.status} /></td>
-                    <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                      <button
-                        onClick={() => handleToggle(flux)}
-                        style={btn('#fff', flux.status === 'ACTIVE' ? '#6c757d' : '#28a745')}
-                        title={flux.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
-                      >
-                        {flux.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
-                      </button>
-                      <button
-                        onClick={() => handleExecute(flux)}
-                        style={btn('#fff', '#2E75B6')}
-                        title="Exécuter"
-                        disabled={flux.status !== 'ACTIVE'}
-                      >
-                        ▶ Exécuter
-                      </button>
-                      <button
-                        onClick={() => navigate(`/flux/${flux.id}/edit`)}
-                        style={btn('#fff', '#fd7e14')}
-                      >
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(flux)}
-                        style={btn('#fff', '#dc3545')}
-                      >
-                        Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+  return (
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+    <Box sx={{ padding: 4, maxWidth: 1200, margin: '0 auto' }}>
+      <Toolbar disableGutters sx={{ mb: 3, justifyContent: 'space-between' }}>
+        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
+          Gestion des Flux
+        </Typography>
+        {isAdmin() && (
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/flux/new')}>
+            Nouveau flux
+          </Button>
+        )}
+      </Toolbar>
 
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '20px', alignItems: 'center' }}>
-              <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0}
-                style={{
-                  padding: '8px 18px', borderRadius: '6px', border: '1px solid #2E75B6',
-                  background: page === 0 ? '#f0f0f0' : '#fff', color: '#2E75B6',
-                  cursor: page === 0 ? 'not-allowed' : 'pointer', fontWeight: 600,
-                }}
-              >
-                ← Précédent
-              </button>
-              <span style={{ color: '#555', fontSize: '14px' }}>Page {page + 1} / {totalPages}</span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1}
-                style={{
-                  padding: '8px 18px', borderRadius: '6px', border: '1px solid #2E75B6',
-                  background: page >= totalPages - 1 ? '#f0f0f0' : '#fff', color: '#2E75B6',
-                  cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', fontWeight: 600,
-                }}
-              >
-                Suivant →
-              </button>
-            </div>
-          )}
-        </>
+      {loading && fluxList.length === 0 ? (
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', p: 2 }}>
+          {[0, 1, 2, 3, 4].map(i => (
+            <Skeleton key={i} variant="rectangular" height={52} animation="wave" sx={{ borderRadius: 1, mb: 1 }} />
+          ))}
+        </Box>
+      ) : (
+        <Box sx={{ bgcolor: 'background.paper', borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', height: 560 }}>
+          <DataGrid
+            rows={fluxList}
+            columns={columns}
+            loading={loading}
+            rowCount={rowCount}
+            paginationMode="server"
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[10, 25, 50]}
+            disableRowSelectionOnClick
+            sx={{ border: 'none' }}
+          />
+        </Box>
       )}
 
-      {deleteTarget && (
-        <ConfirmModal
-          title="Supprimer le flux"
-          message={`Êtes-vous sûr de vouloir supprimer le flux "${deleteTarget.name}" ? Cette action est irréversible.`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-    </div>
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+        <DialogTitle>Supprimer le flux</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Êtes-vous sûr de vouloir supprimer le flux « {deleteTarget?.name} » ? Cette action est irréversible.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)}>Annuler</Button>
+          <Button color="error" variant="contained" onClick={handleDelete}>Supprimer</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar(s => ({ ...s, open: false }))}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+    </motion.div>
   );
 };
 

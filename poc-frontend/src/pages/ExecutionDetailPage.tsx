@@ -1,10 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import {
+  Box, Card, CardContent, Typography, Breadcrumbs, Link, Grid, Alert,
+  Button, IconButton, Table, TableHead, TableBody, TableRow, TableCell,
+  TableContainer, Paper, Chip,
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DownloadIcon from '@mui/icons-material/Download';
 import { getExecutionById, getExecutionLogs, downloadFile } from '../api/executionApi';
+import { isAuthError } from '../api/axiosConfig';
 import { Execution, ExecutionLog } from '../types';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
 
 function formatDate(s?: string) {
   if (!s) return '-';
@@ -17,17 +32,21 @@ function formatDuration(ms?: number) {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
-const logLevelColor: Record<string, string> = {
-  INFO: '#2E75B6',
-  WARN: '#fd7e14',
-  ERROR: '#dc3545',
+const logLevelColor: Record<string, { bg: string; color: string }> = {
+  INFO: { bg: '#e8f0fe', color: '#2E75B6' },
+  WARN: { bg: '#fff3cd', color: '#fd7e14' },
+  ERROR: { bg: '#f8d7da', color: '#dc3545' },
 };
 
-const infoRow = (label: string, value: React.ReactNode) => (
-  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-    <span style={{ width: '140px', fontSize: '13px', color: '#888', fontWeight: 600, flexShrink: 0 }}>{label}</span>
-    <span style={{ fontSize: '14px', color: '#333' }}>{value}</span>
-  </div>
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <Grid size={{ xs: 12, sm: 6 }}>
+    <Typography variant="caption" sx={{ color: '#888', fontWeight: 600, display: 'block' }}>
+      {label}
+    </Typography>
+    <Typography variant="body2" component="div" sx={{ color: '#333' }}>
+      {value}
+    </Typography>
+  </Grid>
 );
 
 const ExecutionDetailPage: React.FC = () => {
@@ -43,7 +62,7 @@ const ExecutionDetailPage: React.FC = () => {
     setLoading(true);
     Promise.all([getExecutionById(numId), getExecutionLogs(numId)])
       .then(([ex, lg]) => { setExecution(ex); setLogs(lg); })
-      .catch(() => toast.error('Erreur de chargement'))
+      .catch(error => { if (!isAuthError(error)) toast.error('Erreur de chargement'); })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -62,95 +81,100 @@ const ExecutionDetailPage: React.FC = () => {
   };
 
   if (loading) return <LoadingSpinner />;
-  if (!execution) return <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>Exécution introuvable</div>;
+  if (!execution) return <Typography sx={{ p: 5, textAlign: 'center', color: '#888' }}>Exécution introuvable</Typography>;
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
-        <button
-          onClick={() => navigate('/executions')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2E75B6', fontSize: '22px' }}
-        >←</button>
-        <h1 style={{ color: '#1F4E79', fontSize: '24px', margin: 0 }}>
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
+    <Box sx={{ padding: 4, maxWidth: 1000, margin: '0 auto' }}>
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link component={RouterLink} to="/executions" underline="hover" color="inherit">
+          Exécutions
+        </Link>
+        <Typography color="text.primary">Exécution #{id}</Typography>
+      </Breadcrumbs>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <IconButton onClick={() => navigate('/executions')}><ArrowBackIcon /></IconButton>
+        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
           Détail de l'exécution #{id}
-        </h1>
-      </div>
+        </Typography>
+      </Box>
 
-      {/* Info card */}
-      <div style={{
-        background: '#fff', borderRadius: '10px', padding: '28px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '24px',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-          <h2 style={{ margin: 0, fontSize: '16px', color: '#555', fontWeight: 600 }}>Informations</h2>
-          {execution.outputFilePath && (
-            <button
-              onClick={handleDownload}
-              style={{
-                padding: '8px 18px', borderRadius: '7px', border: 'none',
-                background: '#1F4E79', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-              }}
-            >
-              ↓ Télécharger le fichier
-            </button>
+      <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontSize: '16px', color: '#555', fontWeight: 700 }}>
+              Informations
+            </Typography>
+            {execution.outputFilePath && (
+              <Button variant="contained" startIcon={<DownloadIcon />} onClick={handleDownload}>
+                Télécharger le fichier
+              </Button>
+            )}
+          </Box>
+
+          <Grid container spacing={2}>
+            <InfoRow label="Flux" value={<strong>{execution.fluxName}</strong>} />
+            <InfoRow label="Statut" value={<StatusBadge status={execution.status} />} />
+            <InfoRow label="Début" value={formatDate(execution.startedAt)} />
+            <InfoRow label="Fin" value={formatDate(execution.finishedAt)} />
+            <InfoRow label="Durée" value={formatDuration(execution.durationMs)} />
+            <InfoRow
+              label="Fichier généré"
+              value={execution.outputFilePath || <span style={{ color: '#bbb' }}>Aucun</span>}
+            />
+          </Grid>
+
+          {execution.errorMessage && (
+            <Alert severity="error" sx={{ mt: 2, fontFamily: 'monospace' }}>
+              {execution.errorMessage}
+            </Alert>
           )}
-        </div>
-        {infoRow('Flux', <strong>{execution.fluxName}</strong>)}
-        {infoRow('Statut', <StatusBadge status={execution.status} />)}
-        {infoRow('Début', formatDate(execution.startedAt))}
-        {infoRow('Fin', formatDate(execution.finishedAt))}
-        {infoRow('Durée', formatDuration(execution.durationMs))}
-        {infoRow('Fichier généré', execution.outputFilePath || <span style={{ color: '#bbb' }}>Aucun</span>)}
-        {execution.errorMessage && infoRow('Erreur', (
-          <span style={{ color: '#dc3545', fontSize: '13px', fontFamily: 'monospace', background: '#fff0f0', padding: '4px 8px', borderRadius: '4px' }}>
-            {execution.errorMessage}
-          </span>
-        ))}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Logs */}
-      <div style={{ background: '#fff', borderRadius: '10px', padding: '28px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-        <h2 style={{ margin: '0 0 20px', fontSize: '16px', color: '#555', fontWeight: 600 }}>
-          Logs ({logs.length})
-        </h2>
-        {logs.length === 0 ? (
-          <p style={{ color: '#bbb', textAlign: 'center', padding: '20px' }}>Aucun log disponible</p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ background: '#F2F2F2' }}>
-                  {['Horodatage', 'Étape', 'Niveau', 'Message'].map(h => (
-                    <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '12px', color: '#555', fontWeight: 700 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map(log => (
-                  <tr key={log.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
-                    <td style={{ padding: '9px 14px', color: '#777', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
-                      {new Date(log.loggedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </td>
-                    <td style={{ padding: '9px 14px', color: '#888', whiteSpace: 'nowrap' }}>{log.step || '-'}</td>
-                    <td style={{ padding: '9px 14px' }}>
-                      <span style={{
-                        color: logLevelColor[log.level] || '#555',
-                        fontWeight: 700, fontSize: '11px',
-                        background: `${logLevelColor[log.level]}18`,
-                        padding: '2px 8px', borderRadius: '10px',
-                      }}>
-                        {log.level}
-                      </span>
-                    </td>
-                    <td style={{ padding: '9px 14px', color: '#333', fontFamily: 'monospace', wordBreak: 'break-all' }}>{log.message}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+      <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontSize: '16px', color: '#555', fontWeight: 700, mb: 2 }}>
+            Logs ({logs.length})
+          </Typography>
+          {logs.length === 0 ? (
+            <Typography sx={{ color: '#bbb', textAlign: 'center', py: 3 }}>Aucun log disponible</Typography>
+          ) : (
+            <TableContainer component={Paper} elevation={0}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#F2F2F2' }}>
+                    <TableCell sx={{ fontWeight: 700 }}>Horodatage</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Étape</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Niveau</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Message</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {logs.map(log => {
+                    const lvl = logLevelColor[log.level] || { bg: '#eee', color: '#555' };
+                    return (
+                      <TableRow key={log.id}>
+                        <TableCell sx={{ color: '#777', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                          {new Date(log.loggedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </TableCell>
+                        <TableCell sx={{ color: '#888', whiteSpace: 'nowrap' }}>{log.step || '-'}</TableCell>
+                        <TableCell>
+                          <Chip label={log.level} size="small" sx={{ bgcolor: lvl.bg, color: lvl.color, fontWeight: 700 }} />
+                        </TableCell>
+                        <TableCell sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{log.message}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
+    </Box>
+    </motion.div>
   );
 };
 

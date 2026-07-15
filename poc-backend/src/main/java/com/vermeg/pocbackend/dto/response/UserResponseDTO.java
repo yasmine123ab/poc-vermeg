@@ -24,5 +24,13 @@ public class UserResponseDTO {
 
     private boolean enabled;
 
+    private String firstName;
+
+    private String lastName;
+
+    private String phoneNumber;
+
+    private LocalDateTime lastLoginAt;
+
     private LocalDateTime createdAt;
 }

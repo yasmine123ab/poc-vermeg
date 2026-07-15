@@ -129,9 +129,6 @@ const ExecutionDetailPage: React.FC = () => {
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
         <IconButton onClick={() => navigate('/executions')}><ArrowBackIcon /></IconButton>
-        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
-          Détail de l'exécution #{id}
-        </Typography>
         {(execution.status === 'RUNNING' || execution.status === 'PENDING') && (
           <Chip
             label="● LIVE"

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Box, Toolbar, Typography, Button, IconButton, Tooltip, Dialog, DialogTitle,
+  Box, Toolbar, Button, IconButton, Tooltip, Dialog, DialogTitle,
   DialogContent, DialogContentText, DialogActions, Snackbar, Alert, Link, Skeleton,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
@@ -147,10 +147,7 @@ const FluxListPage: React.FC = () => {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
     <Box sx={{ padding: 4, maxWidth: 1200, margin: '0 auto' }}>
-      <Toolbar disableGutters sx={{ mb: 3, justifyContent: 'space-between' }}>
-        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
-          Gestion des Flux
-        </Typography>
+      <Toolbar disableGutters sx={{ mb: 3, justifyContent: 'flex-end' }}>
         {isAdmin() && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/flux/new')}>
             Nouveau flux

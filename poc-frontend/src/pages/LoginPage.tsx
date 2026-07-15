@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Box, Card, CardContent, TextField, Button, Typography,
-  InputAdornment, IconButton, Alert, Avatar,
+  InputAdornment, IconButton, Alert, Avatar, Link,
 } from '@mui/material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import Visibility from '@mui/icons-material/Visibility';
@@ -125,6 +125,13 @@ const LoginPage: React.FC = () => {
                 },
               }}
             />
+
+            <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+              <Link component={RouterLink} to="/forgot-password" underline="hover" sx={{ fontSize: 13, color: '#2E75B6', fontWeight: 600 }}>
+                Mot de passe oublié ?
+              </Link>
+            </Box>
+
             <Button
               type="submit"
               fullWidth
@@ -135,6 +142,12 @@ const LoginPage: React.FC = () => {
             >
               Se connecter
             </Button>
+          </Box>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Link component={RouterLink} to="/register" underline="hover" sx={{ fontSize: 14, color: '#2E75B6', fontWeight: 600 }}>
+              Pas encore de compte ? S'inscrire
+            </Link>
           </Box>
 
           <Box sx={{ mt: 3, textAlign: 'center' }}>

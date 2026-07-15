@@ -11,6 +11,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
 
@@ -29,6 +30,7 @@ const pageTitles: Record<string, string> = {
   '/flux/new': 'Nouveau flux',
   '/executions': 'Historique des Exécutions',
   '/stats': 'Statistiques',
+  '/profile': 'Mon profil',
 };
 
 function resolvePageTitle(pathname: string): string {
@@ -82,11 +84,13 @@ const Layout: React.FC = () => {
 
         <Box sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Avatar sx={{ bgcolor: activeBg }}>
-            {(user?.username || '?').charAt(0).toUpperCase()}
+            {user?.firstName && user?.lastName
+              ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+              : (user?.username || '?').charAt(0).toUpperCase()}
           </Avatar>
           <Box sx={{ overflow: 'hidden' }}>
             <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user?.username}
+              {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.username}
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
               {user?.role}
@@ -120,6 +124,22 @@ const Layout: React.FC = () => {
         <Divider sx={{ borderColor: 'rgba(255,255,255,0.15)' }} />
 
         <List sx={{ px: 1, py: 1 }}>
+          <ListItemButton
+            component={NavLink}
+            to="/profile"
+            sx={{
+              borderRadius: 1.5,
+              mb: 0.5,
+              color: '#fff',
+              '&.active': { bgcolor: activeBg },
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+              <AccountCircleIcon />
+            </ListItemIcon>
+            <ListItemText primary="Mon profil" />
+          </ListItemButton>
           <ListItemButton
             onClick={handleLogout}
             sx={{ borderRadius: 1.5, color: '#fff', '&:hover': { bgcolor: 'rgba(220,53,69,0.4)' } }}

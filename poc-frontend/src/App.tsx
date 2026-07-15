@@ -9,6 +9,10 @@ import { ThemeModeProvider, useThemeMode, ThemeMode } from './context/ThemeConte
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import FluxListPage from './pages/FluxListPage';
 import FluxFormPage from './pages/FluxFormPage';
@@ -98,6 +102,9 @@ const AnimatedRoutes: React.FC = () => {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<LoginRoute />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<Layout />}>
@@ -112,6 +119,7 @@ const AnimatedRoutes: React.FC = () => {
             <Route path="/executions" element={<ExecutionsPage />} />
             <Route path="/executions/:id" element={<ExecutionDetailPage />} />
             <Route path="/stats" element={<StatsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Route>
 

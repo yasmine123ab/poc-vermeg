@@ -102,6 +102,11 @@ public class ExecutionService {
             execution = executionRepository.save(execution);
             saveLog(execution, LogLevel.INFO, "START", "Démarrage du pipeline pour le flux : " + flux.getName());
             sendUpdate(execution, flux, "Pipeline démarré", LogLevel.INFO, "START");
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             // Step f — Read
             ConnectorConfig connectorConfig = connectorConfigRepository.findByFluxId(fluxId).orElse(null);
@@ -111,18 +116,33 @@ public class ExecutionService {
             String readMessage = "Lecture terminée : " + data.size() + " enregistrements lus";
             saveLog(execution, LogLevel.INFO, "READ", readMessage);
             sendUpdate(execution, flux, readMessage, LogLevel.INFO, "READ");
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             // Step h — Transform
             List<TransformRule> rules = transformRuleRepository.findByFluxIdOrderByOrderIndex(fluxId);
             data = transformEngine.transform(data, rules);
             saveLog(execution, LogLevel.INFO, "TRANSFORM", "Transformation terminée");
             sendUpdate(execution, flux, "Transformation terminée", LogLevel.INFO, "TRANSFORM");
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             // Step j — Generate file
             String filePath = fileGenerator.generate(data, flux.getOutputFormat(), execution.getId());
             String generateMessage = "Fichier généré : " + filePath;
             saveLog(execution, LogLevel.INFO, "GENERATE", generateMessage);
             sendUpdate(execution, flux, generateMessage, LogLevel.INFO, "GENERATE");
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
 
             // Step l — SUCCESS
             execution.setStatus(ExecutionStatus.SUCCESS);

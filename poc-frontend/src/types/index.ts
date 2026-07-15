@@ -4,6 +4,10 @@ export interface AuthUser {
   username: string;
   email: string;
   role: UserRole;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  lastLoginAt?: string;
 }
 
 export interface AuthResponse {
@@ -11,8 +15,42 @@ export interface AuthResponse {
   type: string;
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: UserRole;
   expiresIn: number;
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  role: UserRole;
+  enabled: boolean;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  role: UserRole;
+}
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmPassword?: string;
 }
 
 export type FluxStatus = 'INACTIVE' | 'ACTIVE' | 'RUNNING' | 'ARCHIVED';

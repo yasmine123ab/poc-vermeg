@@ -35,6 +35,24 @@ public class User {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    private String firstName;
+
+    private String lastName;
+
+    private String phoneNumber;
+
+    private String avatarInitials;
+
+    private String resetPasswordToken;
+
+    private LocalDateTime resetPasswordExpiry;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean emailVerified = false;
+
+    private LocalDateTime lastLoginAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist

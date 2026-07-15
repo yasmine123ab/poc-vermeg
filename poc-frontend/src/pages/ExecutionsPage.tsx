@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
-  Box, Typography, Card, CardContent, TextField, MenuItem, Button,
+  Box, Card, CardContent, TextField, MenuItem, Button,
   Table, TableHead, TableBody, TableRow, TableCell, TableContainer,
   Paper, Pagination, Stack, Skeleton,
 } from '@mui/material';
@@ -98,10 +98,6 @@ const ExecutionsPage: React.FC = () => {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
     <Box sx={{ padding: 4, maxWidth: 1200, margin: '0 auto' }}>
-      <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700, mb: 3 }}>
-        Historique des Exécutions
-      </Typography>
-
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', mb: 3 }}>
         <CardContent>
           <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>

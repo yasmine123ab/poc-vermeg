@@ -185,10 +185,6 @@ const StatsPage: React.FC = () => {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
       <Box sx={{ padding: 4, maxWidth: 1200, margin: '0 auto' }}>
-        <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700, mb: 3 }}>
-          Statistiques
-        </Typography>
-
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>

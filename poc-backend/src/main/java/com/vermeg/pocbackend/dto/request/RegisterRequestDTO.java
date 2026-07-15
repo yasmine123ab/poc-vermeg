@@ -20,5 +20,13 @@ public class RegisterRequestDTO {
     @Size(min = 6)
     private String password;
 
+    @NotBlank
+    private String firstName;
+
+    @NotBlank
+    private String lastName;
+
+    private String phoneNumber;
+
     private UserRole role = UserRole.ADMIN;
 }

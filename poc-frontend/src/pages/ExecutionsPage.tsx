@@ -10,6 +10,7 @@ import {
 import { getExecutions, cancelExecution } from '../api/executionApi';
 import { getAllFlux } from '../api/fluxApi';
 import { isAuthError } from '../api/axiosConfig';
+import { useWebSocket, ExecutionUpdate } from '../hooks/useWebSocket';
 import { Execution, ExecutionStatus, Flux } from '../types';
 import StatusBadge from '../components/StatusBadge';
 
@@ -60,6 +61,23 @@ const ExecutionsPage: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useWebSocket((update: ExecutionUpdate) => {
+    setExecutions(prev => {
+      const exists = prev.find(e => e.id === update.executionId);
+      if (exists) {
+        return prev.map(e => e.id === update.executionId ? {
+          ...e,
+          status: update.status as ExecutionStatus,
+          finishedAt: update.finishedAt,
+          durationMs: update.durationMs,
+          outputFilePath: update.outputFilePath,
+          errorMessage: update.errorMessage,
+        } : e);
+      }
+      return prev;
+    });
+  });
 
   const handleCancel = async (ex: Execution) => {
     try {

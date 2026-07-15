@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { keyframes } from '@mui/system';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, Typography, Breadcrumbs, Link, Grid, Alert,
@@ -11,7 +12,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DownloadIcon from '@mui/icons-material/Download';
 import { getExecutionById, getExecutionLogs, downloadFile } from '../api/executionApi';
 import { isAuthError } from '../api/axiosConfig';
-import { Execution, ExecutionLog } from '../types';
+import { useWebSocket, ExecutionUpdate } from '../hooks/useWebSocket';
+import { Execution, ExecutionLog, ExecutionStatus, LogLevel } from '../types';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -20,6 +22,12 @@ const pageVariants = {
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -20 },
 };
+
+const pulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+`;
 
 function formatDate(s?: string) {
   if (!s) return '-';
@@ -54,6 +62,7 @@ const ExecutionDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [execution, setExecution] = useState<Execution | null>(null);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
+  const [liveLogs, setLiveLogs] = useState<ExecutionLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,6 +74,29 @@ const ExecutionDetailPage: React.FC = () => {
       .catch(error => { if (!isAuthError(error)) toast.error('Erreur de chargement'); })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useWebSocket((update: ExecutionUpdate) => {
+    if (update.executionId !== Number(id)) return;
+
+    setExecution(prev => prev ? {
+      ...prev,
+      status: update.status as ExecutionStatus,
+      finishedAt: update.finishedAt,
+      durationMs: update.durationMs,
+      outputFilePath: update.outputFilePath,
+      errorMessage: update.errorMessage,
+    } : prev);
+
+    if (update.logMessage) {
+      setLiveLogs(prev => [...prev, {
+        id: Date.now(),
+        level: (update.logLevel || 'INFO') as LogLevel,
+        message: update.logMessage || '',
+        step: update.logStep || '',
+        loggedAt: new Date().toISOString(),
+      }]);
+    }
+  });
 
   const handleDownload = async () => {
     try {
@@ -83,6 +115,8 @@ const ExecutionDetailPage: React.FC = () => {
   if (loading) return <LoadingSpinner />;
   if (!execution) return <Typography sx={{ p: 5, textAlign: 'center', color: '#888' }}>Exécution introuvable</Typography>;
 
+  const allLogs = [...logs, ...liveLogs];
+
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3 }}>
     <Box sx={{ padding: 4, maxWidth: 1000, margin: '0 auto' }}>
@@ -98,6 +132,18 @@ const ExecutionDetailPage: React.FC = () => {
         <Typography variant="h5" sx={{ color: 'primary.main', fontWeight: 700 }}>
           Détail de l'exécution #{id}
         </Typography>
+        {(execution.status === 'RUNNING' || execution.status === 'PENDING') && (
+          <Chip
+            label="● LIVE"
+            size="small"
+            sx={{
+              bgcolor: '#4caf50',
+              color: 'white',
+              fontWeight: 700,
+              animation: `${pulse} 1.5s ease-in-out infinite`,
+            }}
+          />
+        )}
       </Box>
 
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', mb: 3 }}>
@@ -136,9 +182,9 @@ const ExecutionDetailPage: React.FC = () => {
       <Card sx={{ borderRadius: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontSize: '16px', color: '#555', fontWeight: 700, mb: 2 }}>
-            Logs ({logs.length})
+            Logs ({allLogs.length})
           </Typography>
-          {logs.length === 0 ? (
+          {allLogs.length === 0 ? (
             <Typography sx={{ color: '#bbb', textAlign: 'center', py: 3 }}>Aucun log disponible</Typography>
           ) : (
             <TableContainer component={Paper} elevation={0}>
@@ -152,7 +198,7 @@ const ExecutionDetailPage: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {logs.map(log => {
+                  {allLogs.map(log => {
                     const lvl = logLevelColor[log.level] || { bg: '#eee', color: '#555' };
                     return (
                       <TableRow key={log.id}>

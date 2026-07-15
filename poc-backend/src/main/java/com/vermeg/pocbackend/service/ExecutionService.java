@@ -3,6 +3,7 @@ package com.vermeg.pocbackend.service;
 import com.vermeg.pocbackend.connector.ConnectorFactory;
 import com.vermeg.pocbackend.dto.response.ExecutionLogResponseDTO;
 import com.vermeg.pocbackend.dto.response.ExecutionResponseDTO;
+import com.vermeg.pocbackend.dto.response.ExecutionUpdateDTO;
 import com.vermeg.pocbackend.engine.FileGenerator;
 import com.vermeg.pocbackend.engine.TransformEngine;
 import com.vermeg.pocbackend.exception.ResourceNotFoundException;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ public class ExecutionService {
     private final FileGenerator fileGenerator;
     private final TransformRuleRepository transformRuleRepository;
     private final ConnectorConfigRepository connectorConfigRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Self-reference injected lazily to allow @Async proxy to work on self-calls
     @Autowired
@@ -98,28 +101,35 @@ public class ExecutionService {
             execution.setStatus(ExecutionStatus.RUNNING);
             execution = executionRepository.save(execution);
             saveLog(execution, LogLevel.INFO, "START", "Démarrage du pipeline pour le flux : " + flux.getName());
+            sendUpdate(execution, flux, "Pipeline démarré", LogLevel.INFO, "START");
 
             // Step f — Read
             ConnectorConfig connectorConfig = connectorConfigRepository.findByFluxId(fluxId).orElse(null);
             List<Map<String, Object>> data = connectorFactory
                     .getConnector(flux.getConnectorType())
                     .read(flux.getConfig(), connectorConfig);
-            saveLog(execution, LogLevel.INFO, "READ", "Lecture terminée : " + data.size() + " enregistrements lus");
+            String readMessage = "Lecture terminée : " + data.size() + " enregistrements lus";
+            saveLog(execution, LogLevel.INFO, "READ", readMessage);
+            sendUpdate(execution, flux, readMessage, LogLevel.INFO, "READ");
 
             // Step h — Transform
             List<TransformRule> rules = transformRuleRepository.findByFluxIdOrderByOrderIndex(fluxId);
             data = transformEngine.transform(data, rules);
             saveLog(execution, LogLevel.INFO, "TRANSFORM", "Transformation terminée");
+            sendUpdate(execution, flux, "Transformation terminée", LogLevel.INFO, "TRANSFORM");
 
             // Step j — Generate file
             String filePath = fileGenerator.generate(data, flux.getOutputFormat(), execution.getId());
-            saveLog(execution, LogLevel.INFO, "GENERATE", "Fichier généré : " + filePath);
+            String generateMessage = "Fichier généré : " + filePath;
+            saveLog(execution, LogLevel.INFO, "GENERATE", generateMessage);
+            sendUpdate(execution, flux, generateMessage, LogLevel.INFO, "GENERATE");
 
             // Step l — SUCCESS
             execution.setStatus(ExecutionStatus.SUCCESS);
             execution.setOutputFilePath(filePath);
             execution.setFinishedAt(LocalDateTime.now());
-            executionRepository.save(execution);
+            execution = executionRepository.save(execution);
+            sendUpdate(execution, flux, "Exécution terminée avec succès", LogLevel.INFO, "DONE");
 
         } catch (Exception e) {
             log.error("Pipeline failed for execution {}: {}", executionId, e.getMessage(), e);
@@ -127,7 +137,8 @@ public class ExecutionService {
             execution.setStatus(ExecutionStatus.FAILED);
             execution.setErrorMessage(e.getMessage());
             execution.setFinishedAt(LocalDateTime.now());
-            executionRepository.save(execution);
+            execution = executionRepository.save(execution);
+            sendUpdate(execution, flux, e.getMessage(), LogLevel.ERROR, "ERROR");
         }
     }
 
@@ -198,6 +209,28 @@ public class ExecutionService {
         } catch (Exception e) {
             log.warn("Could not persist log entry [{}] {}: {}", level, step, e.getMessage());
         }
+    }
+
+    private void sendUpdate(Execution execution, Flux flux, String logMessage, LogLevel logLevel, String logStep) {
+        Long durationMs = null;
+        if (execution.getStartedAt() != null && execution.getFinishedAt() != null) {
+            durationMs = Duration.between(execution.getStartedAt(), execution.getFinishedAt()).toMillis();
+        }
+        ExecutionUpdateDTO dto = ExecutionUpdateDTO.builder()
+                .executionId(execution.getId())
+                .fluxId(flux.getId())
+                .fluxName(flux.getName())
+                .status(execution.getStatus())
+                .startedAt(execution.getStartedAt())
+                .finishedAt(execution.getFinishedAt())
+                .durationMs(durationMs)
+                .outputFilePath(execution.getOutputFilePath())
+                .errorMessage(execution.getErrorMessage())
+                .logMessage(logMessage)
+                .logLevel(logLevel)
+                .logStep(logStep)
+                .build();
+        messagingTemplate.convertAndSend("/topic/executions", dto);
     }
 
     private ExecutionResponseDTO toResponseDTO(Execution execution, Flux flux) {

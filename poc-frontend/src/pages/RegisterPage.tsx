@@ -4,13 +4,14 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, TextField, Button, Typography,
-  InputAdornment, IconButton, Alert, Avatar, Grid, MenuItem, Link,
+  InputAdornment, IconButton, Alert, Avatar, Grid, MenuItem, Link, LinearProgress,
 } from '@mui/material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { register as registerApi } from '../api/authApi';
 import { UserRole } from '../types';
+import { passwordStrength } from './ResetPasswordPage';
 
 interface FormState {
   firstName: string;
@@ -43,6 +44,8 @@ const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const strength = passwordStrength(form.password);
 
   const handleChange = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [field]: e.target.value }));
@@ -191,6 +194,14 @@ const RegisterPage: React.FC = () => {
                   },
                 }}
               />
+              {form.password.length > 0 && (
+                <Box sx={{ mt: -1, mb: 1 }}>
+                  <LinearProgress variant="determinate" value={strength.value} color={strength.color} sx={{ height: 6, borderRadius: 3 }} />
+                  <Typography variant="caption" sx={{ color: `${strength.color}.main`, fontWeight: 600 }}>
+                    {strength.label}
+                  </Typography>
+                </Box>
+              )}
               <TextField
                 label="Confirmer le mot de passe"
                 type={showConfirmPassword ? 'text' : 'password'}
